@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Groupie Tracker - Artistes</title>
+</head>
+<body>
+    <h1>Liste des artistes</h1>
+
+    {{range .}}
+    <div>
+        <h2>{{.Name}}</h2>
+        <img src="{{.Image}}" width="150">
+        <p>Année de création : {{.CreationDate}}</p>
+        <p>Premier album : {{.FirstAlbum}}</p>
+        <p>Membres :</p>
+        <ul>
+            {{range .Members}}
+            <li>{{.}}</li>
+            {{end}}
+        </ul>
+        <hr>
+    </div>
+    {{end}}
+
+</body>
+</html>
