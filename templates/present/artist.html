@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{.Artist.Name}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+        .card {
+            background:white;
+            max-width:600px;
+            margin:auto;
+            padding:20px;
+            border-radius:10px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+        img { display:block; margin:auto; border-radius:10px; }
+        h1, h2 { text-align:center; }
+        .members, .concerts { margin:15px 0; }
+        ul { list-style:none; padding:0; }
+        li { background:#eee; margin:5px 0; padding:8px; border-radius:5px; }
+        a { text-decoration:none; color:#007bff; }
+        a:hover { text-decoration:underline; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+
+    <!-- Nom + image -->
+    <h1>{{.Artist.Name}}</h1>
+    <img src="{{.Artist.Image}}" width="250">
+
+    <p><strong>Année de création :</strong> {{.Artist.CreationDate}}</p>
+    <p><strong>Premier album :</strong> {{.Artist.FirstAlbum}}</p>
+
+    <!-- Membres -->
+    <div class="members">
+        <h2>Membres</h2>
+        <ul>
+            {{range .Artist.Members}}
+            <li>{{.}}</li>
+            {{end}}
+        </ul>
+    </div>
+
+    <!-- Concerts -->
+    <div class="concerts">
+        <h2>Concerts</h2>
+        {{if .Concerts.DatesLocations}}
+            {{range $city, $dates := .Concerts.DatesLocations}}
+                <h3>{{$city}}</h3>
+                <ul>
+                    {{range $dates}}
+                    <li>{{.}}</li>
+                    {{end}}
+                </ul>
+            {{end}}
+        {{else}}
+            <p>Aucun concert trouvé pour cet artiste.</p>
+        {{end}}
+    </div>
+
+    <br>
+    <p style="text-align:center;">
+        <a href="/artists">← Retour à la liste</a>
+    </p>
+</div>
+
+</body>
+</html>
