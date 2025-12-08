@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{.Name}}</title>
+</head>
+<body>
+    <h1>{{.Name}}</h1>
+    <img src="{{.Image}}" width="250">
+
+    <p><strong>Année de création :</strong> {{.CreationDate}}</p>
+    <p><strong>Premier album :</strong> {{.FirstAlbum}}</p>
+
+    <h3>Membres :</h3>
+    <ul>
+        {{range .Members}}
+        <li>{{.}}</li>
+        {{end}}
+    </ul>
+
+    <br>
+    <a href="/artists">← Retour</a>
+</body>
+</html>
