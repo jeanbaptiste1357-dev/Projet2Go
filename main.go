@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type API struct {
@@ -55,6 +56,28 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// filtrage si q présent
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	var filtered []Artist
+	if q == "" {
+		filtered = artists
+	} else {
+		ql := strings.ToLower(q)
+		for _, a := range artists {
+			if strings.Contains(strings.ToLower(a.Name), ql) {
+				filtered = append(filtered, a)
+				continue
+			}
+			// rechercher aussi dans les membres
+			for _, m := range a.Members {
+				if strings.Contains(strings.ToLower(m), ql) {
+					filtered = append(filtered, a)
+					break
+				}
+			}
+		}
+	}
+
 	// 3) Charger et exécuter le template
 	tmpl, err := template.ParseFiles("templates/artiste.html")
 	if err != nil {
@@ -62,7 +85,13 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl.Execute(w, artists)
+	// passer les artistes filtrés et la requête au template
+	data := struct {
+		Artists []Artist
+		Query   string
+	}{Artists: filtered, Query: q}
+
+	tmpl.Execute(w, data)
 }
 
 type Artist struct {
@@ -89,6 +118,9 @@ type ArtistPage struct {
 }
 
 func main() {
+	// servir les fichiers statiques (css)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
 	http.HandleFunc("/", rootHandler)           // redirige la racine vers la liste
 	http.HandleFunc("/artists", artistsHandler) // page liste artistes
 	http.HandleFunc("/artist", artistHandler)   // page artiste individuel

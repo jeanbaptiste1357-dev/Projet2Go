@@ -1,28 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <title>Groupie Tracker - Artistes</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
 <body>
-    <h1>Liste des artistes</h1>
-
-
-    {{range .}}
-    <div>
-        <h2><a href="/artist?id={{.ID}}">{{.Name}}</a></h2>
-        <img src="{{.Image}}" width="150">
-        <p>Année de création : {{.CreationDate}}</p>
-        <p>Premier album : {{.FirstAlbum}}</p>
-        <p>Membres :</p>
-        <ul>
-            {{range .Members}}
-            <li>{{.}}</li>
-            {{end}}
-        </ul>
-        <hr>
+<div class="container">
+    <div class="header">
+        <div class="brand">Groupie Tracker</div>
+        <form class="search" method="get" action="/artists">
+            <input type="text" name="q" placeholder="Rechercher un artiste ou un membre..." value="{{.Query}}">
+            <button type="submit">Rechercher</button>
+        </form>
     </div>
-    {{end}}
 
+    <div class="grid">
+        {{range .Artists}}
+        <div class="card">
+            <a href="/artist?id={{.ID}}"><img src="{{.Image}}" alt="{{.Name}}"></a>
+            <h3><a href="/artist?id={{.ID}}">{{.Name}}</a></h3>
+            <p>Année: {{.CreationDate}}</p>
+            <p>Premier album: {{.FirstAlbum}}</p>
+        </div>
+        {{end}}
+    </div>
+
+    <div class="footer">Affiche {{len .Artists}} artiste(s)</div>
+</div>
 </body>
 </html>
