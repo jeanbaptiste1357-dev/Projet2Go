@@ -25,6 +25,17 @@ type Artist struct {
     CreationDate int      `json:"creationDate"`
 }
 
+type Relation struct {
+    Index          int                 `json:"index"`
+    DatesLocations map[string][]string `json:"datesLocations"`
+}
+
+type ArtistPage struct {
+    Artist   Artist
+    Concerts Relation
+}
+
+
 func main() {
     // Quand l'utilisateur va sur http://localhost:8080/artists
     http.HandleFunc("/artists", artistsHandler)
@@ -33,85 +44,55 @@ func main() {
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func artistsHandler(w http.ResponseWriter, r *http.Request) {
-
-    // 1) On récupère les URLs de l'API
-    resp, err := http.Get("https://groupietrackers.herokuapp.com/api")
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    defer resp.Body.Close()
-
-    body, _ := io.ReadAll(resp.Body)
-
-    var api API
-    json.Unmarshal(body, &api)
-
-    // 2) On récupère les artistes
-    respArtists, err := http.Get(api.Artists)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    defer respArtists.Body.Close()
-
-    bodyArtists, _ := io.ReadAll(respArtists.Body)
-
-    var artists []Artist
-    json.Unmarshal(bodyArtists, &artists)
-
-    // 3) On charge le template
-    tmpl, err := template.ParseFiles("templates/artists.html")
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-
-    // 4) On envoie les artistes dans le HTML
-    tmpl.Execute(w, artists)
-
-    http.HandleFunc("/artist", artistHandler)
-
-}
-
 func artistHandler(w http.ResponseWriter, r *http.Request) {
-    // 1) Récupérer l’ID dans l’URL
+    // 1) Récupérer l'id dans l'URL
     id := r.URL.Query().Get("id")
     if id == "" {
-        http.Error(w, "Missing id", http.StatusBadRequest)
+        http.Error(w, "ID manquant", http.StatusBadRequest)
         return
     }
 
-
-    // 2) Lire l’API principale
-    resp, err := http.Get("https://groupietrackers.herokuapp.com/api")
+    // 2) Appeler l'API principale pour obtenir les URLs
+    respAPI, err := http.Get("https://groupietrackers.herokuapp.com/api")
     if err != nil {
-        http.Error(w, err.Error(), 500)
+        http.Error(w, "Erreur API: "+err.Error(), http.StatusInternalServerError)
         return
     }
-    defer resp.Body.Close()
-    body, _ := io.ReadAll(resp.Body)
+    defer respAPI.Body.Close()
+    bodyAPI, err := io.ReadAll(respAPI.Body)
+    if err != nil {
+        http.Error(w, "Lecture API: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 
     var api API
-    json.Unmarshal(body, &api)
+    if err := json.Unmarshal(bodyAPI, &api); err != nil {
+        http.Error(w, "Parse API: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 
     // 3) Récupérer la liste des artistes
     respArtists, err := http.Get(api.Artists)
     if err != nil {
-        http.Error(w, err.Error(), 500)
+        http.Error(w, "Erreur artistes: "+err.Error(), http.StatusInternalServerError)
         return
     }
     defer respArtists.Body.Close()
-    bodyArtists, _ := io.ReadAll(respArtists.Body)
+    bodyArtists, err := io.ReadAll(respArtists.Body)
+    if err != nil {
+        http.Error(w, "Lecture artistes: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 
     var artists []Artist
-    json.Unmarshal(bodyArtists, &artists)
+    if err := json.Unmarshal(bodyArtists, &artists); err != nil {
+        http.Error(w, "Parse artistes: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 
-    // 4) Trouver celui qui correspond à l’ID
+    // 4) Trouver l'artiste demandé
     var selected Artist
     found := false
-
     for _, a := range artists {
         if fmt.Sprint(a.ID) == id {
             selected = a
@@ -119,20 +100,62 @@ func artistHandler(w http.ResponseWriter, r *http.Request) {
             break
         }
     }
-
     if !found {
-        http.Error(w, "Artist not found", 404)
+        http.Error(w, "Artiste introuvable", http.StatusNotFound)
         return
     }
 
-    // 5) Charger le template
+    // 5) Récupérer les relations (dates + lieux) — NOTE: on déclare 'relations' ici
+    respRelation, err := http.Get(api.Relation)
+    if err != nil {
+        http.Error(w, "Erreur relations: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+    defer respRelation.Body.Close()
+    bodyRelation, err := io.ReadAll(respRelation.Body)
+    if err != nil {
+        http.Error(w, "Lecture relations: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    var relations []Relation
+    if err := json.Unmarshal(bodyRelation, &relations); err != nil {
+        http.Error(w, "Parse relations: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    // 6) Trouver la relation correspondant à l'artiste sélectionné
+    var rel Relation
+    relFound := false
+    for _, r := range relations {
+        if r.Index == selected.ID {
+            rel = r
+            relFound = true
+            break
+        }
+    }
+    if !relFound {
+        // Si aucune relation trouvée, on peut laisser rel vide (map nil) ou initialiser vide
+        rel = Relation{
+            Index:          selected.ID,
+            DatesLocations: map[string][]string{},
+        }
+    }
+
+    // 7) Préparer les données pour le template et l'exécuter
+    data := ArtistPage{
+        Artist:   selected,
+        Concerts: rel,
+    }
+
     tmpl, err := template.ParseFiles("templates/artist.html")
     if err != nil {
-        http.Error(w, err.Error(), 500)
+        http.Error(w, "Template: "+err.Error(), http.StatusInternalServerError)
         return
     }
 
-    // 6) Envoyer les données au template
-    tmpl.Execute(w, selected)
-
+    if err := tmpl.Execute(w, data); err != nil {
+        http.Error(w, "Render template: "+err.Error(), http.StatusInternalServerError)
+        return
+    }
 }
