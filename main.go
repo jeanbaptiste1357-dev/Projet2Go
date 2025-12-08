@@ -70,4 +70,69 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 
     // 4) On envoie les artistes dans le HTML
     tmpl.Execute(w, artists)
+
+    http.HandleFunc("/artist", artistHandler)
+
+}
+
+func artistHandler(w http.ResponseWriter, r *http.Request) {
+    // 1) Récupérer l’ID dans l’URL
+    id := r.URL.Query().Get("id")
+    if id == "" {
+        http.Error(w, "Missing id", http.StatusBadRequest)
+        return
+    }
+
+
+    // 2) Lire l’API principale
+    resp, err := http.Get("https://groupietrackers.herokuapp.com/api")
+    if err != nil {
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    defer resp.Body.Close()
+    body, _ := io.ReadAll(resp.Body)
+
+    var api API
+    json.Unmarshal(body, &api)
+
+    // 3) Récupérer la liste des artistes
+    respArtists, err := http.Get(api.Artists)
+    if err != nil {
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    defer respArtists.Body.Close()
+    bodyArtists, _ := io.ReadAll(respArtists.Body)
+
+    var artists []Artist
+    json.Unmarshal(bodyArtists, &artists)
+
+    // 4) Trouver celui qui correspond à l’ID
+    var selected Artist
+    found := false
+
+    for _, a := range artists {
+        if fmt.Sprint(a.ID) == id {
+            selected = a
+            found = true
+            break
+        }
+    }
+
+    if !found {
+        http.Error(w, "Artist not found", 404)
+        return
+    }
+
+    // 5) Charger le template
+    tmpl, err := template.ParseFiles("templates/artist.html")
+    if err != nil {
+        http.Error(w, err.Error(), 500)
+        return
+    }
+
+    // 6) Envoyer les données au template
+    tmpl.Execute(w, selected)
+
 }
