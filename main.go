@@ -56,6 +56,11 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// appliquer corrections d'images spécifiques (ex: Mamonas Assassinas)
+	for i := range artists {
+		fixArtistImage(&artists[i])
+	}
+
 	// filtrage si q présent
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	var filtered []Artist
@@ -92,6 +97,17 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 	}{Artists: filtered, Query: q}
 
 	tmpl.Execute(w, data)
+}
+
+// fixArtistImage remplace l'image d'un artiste par une image locale
+// si son nom correspond à un cas spécial.
+func fixArtistImage(a *Artist) {
+	name := strings.ToLower(a.Name)
+	if strings.Contains(name, "mamonas") {
+		// utiliser une image locale statique
+		a.Image = "/static/images/mamonas.svg"
+		return
+	}
 }
 
 type Artist struct {
