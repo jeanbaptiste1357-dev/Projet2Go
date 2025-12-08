@@ -105,7 +105,7 @@ func fixArtistImage(a *Artist) {
 	name := strings.ToLower(a.Name)
 	if strings.Contains(name, "mamonas") {
 		// utiliser une image locale statique
-		a.Image = "/static/images/mamonas.svg"
+		a.Image = "/static/images/mamonas.png"
 		return
 	}
 }
