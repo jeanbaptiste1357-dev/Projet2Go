@@ -89,8 +89,9 @@ type ArtistPage struct {
 }
 
 func main() {
+	http.HandleFunc("/", rootHandler)           // redirige la racine vers la liste
 	http.HandleFunc("/artists", artistsHandler) // page liste artistes
-	http.HandleFunc("/artist", artistHandler)   // page artiste individuel  ← ICI
+	http.HandleFunc("/artist", artistHandler)   // page artiste individuel
 
 	fmt.Println("Server running on http://localhost:8080/")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -207,4 +208,8 @@ func artistHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl.Execute(w, data)
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/artists", http.StatusFound)
 }
