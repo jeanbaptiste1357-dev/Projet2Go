@@ -56,16 +56,13 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3) Charger et exécuter le template
-	tmpl, err := template.ParseFiles("templates/artists.html")
+	tmpl, err := template.ParseFiles("templates/artiste.html")
 	if err != nil {
 		http.Error(w, "Template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := tmpl.Execute(w, artists); err != nil {
-		http.Error(w, "Render template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	tmpl.Execute(w, artists)
 }
 
 type Artist struct {
@@ -77,14 +74,18 @@ type Artist struct {
 	CreationDate int      `json:"creationDate"`
 }
 
-type Relation struct {
-	Index          int                 `json:"index"`
+type RelationData struct {
+	ID             int                 `json:"id"`
 	DatesLocations map[string][]string `json:"datesLocations"`
+}
+
+type RelationResponse struct {
+	Index []RelationData `json:"index"`
 }
 
 type ArtistPage struct {
 	Artist   Artist
-	Concerts Relation
+	Concerts RelationData
 }
 
 func main() {
@@ -169,17 +170,17 @@ func artistHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var relations []Relation
+	var relations RelationResponse
 	if err := json.Unmarshal(bodyRelation, &relations); err != nil {
 		http.Error(w, "Parse relations: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// 6) Trouver la relation correspondant à l'artiste sélectionné
-	var rel Relation
 	relFound := false
-	for _, r := range relations {
-		if r.Index == selected.ID {
+	var rel RelationData
+	for _, r := range relations.Index {
+		if r.ID == selected.ID {
 			rel = r
 			relFound = true
 			break
@@ -187,8 +188,8 @@ func artistHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if !relFound {
 		// Si aucune relation trouvée, on peut laisser rel vide (map nil) ou initialiser vide
-		rel = Relation{
-			Index:          selected.ID,
+		rel = RelationData{
+			ID:             selected.ID,
 			DatesLocations: map[string][]string{},
 		}
 	}
@@ -199,14 +200,11 @@ func artistHandler(w http.ResponseWriter, r *http.Request) {
 		Concerts: rel,
 	}
 
-	tmpl, err := template.ParseFiles("templates/artist.html")
+	tmpl, err := template.ParseFiles("templates/present/artist.html")
 	if err != nil {
 		http.Error(w, "Template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "Render template: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	tmpl.Execute(w, data)
 }
